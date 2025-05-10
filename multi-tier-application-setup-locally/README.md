@@ -63,6 +63,7 @@ All VMs are configured with **private networking** and provisioned through VMwar
 | Check existing VM's      | `vagrant global-status`                     |
 | Delete existing VM's     | `vagrant destroy -f <vmid here>`     -->  `vagrant global-status --prune`  |
 | To reboot VM's           | `vagrant reload`  |
+| Automated way of setup           | `vagrant up`  |
 
 # 1. Msql commands
 | Action                | Command                                       |
