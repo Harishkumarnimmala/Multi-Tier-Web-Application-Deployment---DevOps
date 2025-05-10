@@ -81,16 +81,29 @@ git add multi-tier-application-setup-locally
 
 
 
+
+
 ---
 
 ## 🐞 Troubleshooting
 
 - ❌ **Tomcat doesn't start**  
-  💡 Check logs in `/var/log/tomcat/` and ensure port 8080 isn't in use.
+  wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.26/bin/apache-tomcat-10.1.26.tar.gz     (This path is correct)
+
+  1. Nginx unable t reach tomcat webpage due to firewall issue which is blocking port 8080 do below steps 
+  sudo firewall-cmd --permanent --add-port=8080/tcp
+  sudo firewall-cmd --reload
+
+
 
 - ❌ **MySQL connection refused**  
   💡 error to give previlage access 
   `GRANT ALL PRIVILEGES ON accounts.* TO 'admin'@'%' IDENTIFIED BY 'admin123';`
+
+  2. When db vm has issues to listening propably firewall blocks it we need to enable them 
+  sudo firewall-cmd --permanent --add-port=3306/tcp
+  sudo firewall-cmd --reload
+
 
 - ❌ **App throws DB connection error**  
   💡 Confirm credentials in `application.properties` or `.env`.
@@ -102,6 +115,84 @@ git add multi-tier-application-setup-locally
 - Always run `mvn clean install` after changing source code.
 - Use consistent IP ranges when modifying the `Vagrantfile`.
 - On ARM-based Macs, prefer boxes from the Vagrant Cloud with ARM support.
+
+
+
+## ISSUE 1: 502 Bad Gateway from NGINX
+Problem: NGINX on web01 showed "502 Bad Gateway" instead of loading the app from Tomcat (app01).
+
+Steps Taken:
+
+Verified NGINX config (/etc/nginx/sites-enabled/default):
+upstream vproapp {
+server app01:8080;
+}
+server {
+listen 80;
+location / {
+proxy_pass http://vproapp;
+}
+}
+
+From web01, ping and curl app01:
+ping app01
+curl http://app01:8080
+
+On app01, checked if Tomcat is running:
+sudo ss -tuln | grep 8080
+
+Verified Tomcat web root directory:
+ls /usr/local/tomcat/webapps/ROOT
+
+Re-deployed app:
+systemctl stop tomcat
+rm -rf /usr/local/tomcat/webapps/ROOT*
+cp target/vprofile-v2.war /usr/local/tomcat/webapps/ROOT.war
+chown -R tomcat:tomcat /usr/local/tomcat/webapps
+systemctl start tomcat
+
+Issue Fixed: Application UI accessible via NGINX.
+
+
+
+
+## ISSUE 2: MySQL DB Not Reachable from App
+Problem: App VM (app01) couldn't connect to DB on db01.
+
+Steps Taken:
+
+From app01, ping and test port 3306:
+ping db01
+nc -zv db01 3306 (failed with "No route to host")
+
+On db01, checked DB port:
+sudo ss -tuln | grep 3306
+
+Firewall was blocking:
+sudo firewall-cmd --list-all
+sudo firewall-cmd --list-ports
+
+Opened port 3306:
+sudo firewall-cmd --permanent --add-port=3306/tcp
+sudo firewall-cmd --reload
+
+Re-tested:
+nc -zv db01 3306
+mysql -h db01 -u admin -p
+
+In MySQL, verified user access:
+SELECT host, user FROM mysql.user WHERE user = 'admin';
+
+Issue Fixed: Application able to reach DB and login/register requests working.
+
+Extra Notes:
+/etc/hosts was properly managed by vagrant-hostmanager plugin.
+
+Tomcat logs reviewed at /usr/local/tomcat/logs/catalina.<date>.log
+
+User admin_vp was verified in DB, and password hash updated if needed.
+
+Make sure .vagrant and VM binaries are excluded from .gitignore.
 
 ---
 
