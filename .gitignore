@@ -1,0 +1,25 @@
+# macOS system files
+.DS_Store
+
+# IDE/project configs
+.idea/
+.vscode/
+
+# Build and deployment junk
+*.log
+*.pdf
+
+# Maven build output
+multi-tier-application-setup-locally/target/
+
+# Vagrant state
+multi-tier-application-setup-locally/vagrant/.vagrant/
+
+# Ignore Vagrant machines and VM image files
+multi-tier-application-setup-locally/vagrant/**/.vagrant/
+*.vmdk
+*.vmx
+*.nvram
+*.vmsd
+*.vmxf
+*.lck
